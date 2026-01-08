@@ -1,0 +1,129 @@
+model_version: "1.0"
+extension:
+  id: dev.kiket.ext.google-oauth
+  name: Google OAuth
+  version: 1.0.0
+  description: Shared OAuth 2.0 provider for Google services. Enables single sign-on for Google Calendar, Google Drive, and other Google integrations.
+  author: Kiket Team
+  homepage: https://github.com/kiket-dev/kiket-ext-google-oauth
+  delivery: http
+  callback:
+    url: ${EXTENSION_BASE_URL}
+    secret: env.KIKET_WEBHOOK_SECRET
+    timeout: 30000
+    required: true
+  activationEvents:
+    - oauth.authorize
+    - oauth.callback
+    - oauth.refresh
+    - oauth.revoke
+  permissions:
+    - oauth:manage
+    - users:read
+  capabilities:
+    - oauth2-provider
+  hooks:
+    - event: oauth.callback
+      timeout: 10000
+      retries: 2
+      description: Handle OAuth callback from Google
+    - event: oauth.refresh
+      timeout: 10000
+      retries: 3
+      description: Refresh expired access tokens
+    - event: oauth.revoke
+      timeout: 5000
+      retries: 1
+      description: Revoke OAuth tokens
+  provides:
+    oauth_provider:
+      provider_id: google
+      display_name: Google
+      icon: bi-google
+      endpoints:
+        authorize: https://accounts.google.com/o/oauth2/v2/auth
+        token: https://oauth2.googleapis.com/token
+        revoke: https://oauth2.googleapis.com/revoke
+        userinfo: https://www.googleapis.com/oauth2/v2/userinfo
+      grant_types:
+        - authorization_code
+        - refresh_token
+      default_scopes:
+        - openid
+        - email
+        - profile
+      available_scopes:
+        - id: openid
+          description: OpenID Connect
+          default: true
+        - id: email
+          description: View your email address
+          default: true
+        - id: profile
+          description: View your basic profile info
+          default: true
+        - id: https://www.googleapis.com/auth/calendar.readonly
+          description: View your calendars
+          consumer: google-calendar
+        - id: https://www.googleapis.com/auth/calendar.events.readonly
+          description: View your calendar events
+          consumer: google-calendar
+        - id: https://www.googleapis.com/auth/calendar.events
+          description: Manage your calendar events
+          consumer: google-calendar
+        - id: https://www.googleapis.com/auth/drive.readonly
+          description: View your Google Drive files
+          consumer: google-drive
+        - id: https://www.googleapis.com/auth/drive.file
+          description: Access files created by this app
+          consumer: google-drive
+  contributes:
+    commands:
+      - command: google.connect
+        title: Connect Google Account
+        description: Connect your Google account for calendar and drive integrations
+        category: Connections
+        icon: bi-google
+        keywords: ["google", "connect", "oauth", "login"]
+        handler:
+          type: extension_event
+          event: google.connect
+      - command: google.disconnect
+        title: Disconnect Google Account
+        description: Remove your Google account connection
+        category: Connections
+        icon: bi-x-circle
+        keywords: ["google", "disconnect", "logout"]
+        handler:
+          type: extension_event
+          event: google.disconnect
+  configuration:
+    CLIENT_ID:
+      type: string
+      secret: true
+      required: true
+      scope: extension
+      label: Google OAuth Client ID
+      description: OAuth 2.0 Client ID from Google Cloud Console
+    CLIENT_SECRET:
+      type: string
+      secret: true
+      required: true
+      scope: extension
+      label: Google OAuth Client Secret
+      description: OAuth 2.0 Client Secret from Google Cloud Console
+  rate_limiting:
+    requests_per_minute: 100
+    burst: 20
+  setup:
+    - secrets:
+        title: Google OAuth Credentials
+        description: Configure Google OAuth 2.0 credentials from Google Cloud Console
+        required: true
+        help_url: https://console.cloud.google.com/apis/credentials
+        collect:
+          - CLIENT_ID
+          - CLIENT_SECRET
+  assets:
+    icon: ./public/icon.svg
+  hosting: internal
